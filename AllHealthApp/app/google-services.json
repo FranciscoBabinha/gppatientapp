@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "706958405112",
+    "project_id": "health-app-c8db7",
+    "storage_bucket": "health-app-c8db7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:706958405112:android:8c6e34e74369755edffa0d",
+        "android_client_info": {
+          "package_name": "com.example.gpapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAtydK_ASYuebBlJ_jVxST4ykxbFf213iU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
