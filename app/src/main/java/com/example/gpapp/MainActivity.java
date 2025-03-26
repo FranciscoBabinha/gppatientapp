@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,9 +18,11 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import android.widget.ImageButton;
+import android.widget.PopupMenu;
 
 public class MainActivity extends AppCompatActivity {
     private TextView tvGreeting;
+    private ImageButton settingsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,12 +48,22 @@ public class MainActivity extends AppCompatActivity {
 
         // Setup buttons
         setupButtons();
+
+        // Initialize settings button
+        settingsButton = findViewById(R.id.settingsButton);
+        
+        // Set click listener for settings button
+        settingsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showPopupMenu(v);
+            }
+        });
     }
 
     private void setupTopNavigation() {
         ImageButton homeButton = findViewById(R.id.homeButton);
         ImageButton appointmentsButton = findViewById(R.id.appointmentsButton);
-        ImageButton settingsButton = findViewById(R.id.settingsButton);
 
         homeButton.setOnClickListener(v -> {
             // Already on home
@@ -61,11 +74,6 @@ public class MainActivity extends AppCompatActivity {
             // Navigate to appointments screen
             Intent intent = new Intent(this, AppointmentsActivity.class);
             startActivity(intent);
-        });
-
-        settingsButton.setOnClickListener(v -> {
-            Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show();
-            // TODO: Navigate to settings
         });
     }
 
@@ -131,6 +139,27 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }.execute();
+    }
+
+    private void showPopupMenu(View view) {
+        PopupMenu popup = new PopupMenu(this, view);
+        popup.getMenuInflater().inflate(R.menu.settings_menu, popup.getMenu());
+
+        popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+            @Override
+            public boolean onMenuItemClick(MenuItem item) {
+                if (item.getItemId() == R.id.action_logout) {
+                    // Logout and return to login screen
+                    Intent intent = new Intent(MainActivity.this, LoginActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        popup.show();
     }
 
     @Override
