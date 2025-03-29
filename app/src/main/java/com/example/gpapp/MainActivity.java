@@ -1,6 +1,9 @@
 package com.example.gpapp;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
@@ -99,7 +102,14 @@ public class MainActivity extends AppCompatActivity {
             @Override
             protected String doInBackground(Void... voids) {
                 try {
-                    URL url = new URL("http://192.168.1.40/GP/gp_app/api.php");
+                    // Dynamically determine the URL based on the network
+                    String baseUrl = getBaseUrl();
+                    if (baseUrl == null) {
+                        Log.e("FetchPatientName", "No valid base URL");
+                        return null;
+                    }
+
+                    URL url = new URL(baseUrl + "api.php");
                     HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                     connection.setRequestMethod("GET");
                     connection.setRequestProperty("Accept", "application/json");
@@ -139,6 +149,19 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }.execute();
+    }
+
+    private String getBaseUrl() {
+        // Determine the network and return the appropriate base URL
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+
+        if (activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI) {
+            return "http://192.168.1.40/GP/gp_app/"; // Home Wi-Fi URL
+        } else if (activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE) {
+            return "http://172.20.10.3/GP/gp_app/"; // Mobile Data URL
+        }
+        return null;
     }
 
     private void showPopupMenu(View view) {

@@ -1,6 +1,9 @@
 package com.example.gpapp;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -51,7 +54,14 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void performLogin(String username, String password) {
-        String url = "http://192.168.1.40/GP/gp_app/login.php"; // Replace with your actual login endpoint
+        // Dynamically determine the URL based on the network
+        String baseUrl = getBaseUrl();
+        if (baseUrl == null) {
+            Toast.makeText(this, "No network connection detected.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String url = baseUrl + "login.php"; // Append the endpoint to the base URL
 
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         StringRequest stringRequest = new StringRequest(Request.Method.POST, url,
@@ -84,5 +94,18 @@ public class LoginActivity extends AppCompatActivity {
         };
 
         requestQueue.add(stringRequest);
+    }
+
+    private String getBaseUrl() {
+        // Determine the network and return the appropriate base URL
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+
+        if (activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI) {
+            return "http://192.168.1.40/GP/gp_app/"; // Home Wi-Fi URL
+        } else if (activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE) {
+            return "http://172.20.10.3/GP/gp_app/"; // Mobile Data URL
+        }
+        return null;
     }
 }
