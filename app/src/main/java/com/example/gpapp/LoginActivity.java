@@ -18,6 +18,8 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 
+import org.json.JSONObject;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,11 +27,15 @@ public class LoginActivity extends AppCompatActivity {
     private EditText usernameInput;
     private EditText passwordInput;
     private Button loginButton;
+    private UserSession userSession;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login_screen);
+
+        // Initialize UserSession
+        userSession = UserSession.getInstance(this);
 
         // Initialize views
         usernameInput = findViewById(R.id.username_input);
@@ -68,13 +74,24 @@ public class LoginActivity extends AppCompatActivity {
                 new Response.Listener<String>() {
                     @Override
                     public void onResponse(String response) {
-                        if (response.equals("success")) {
-                            // Login successful
-                            startActivity(new Intent(LoginActivity.this, MainActivity.class));
-                            finish();
-                        } else {
-                            // Login failed
-                            Toast.makeText(LoginActivity.this, "Invalid username or password", Toast.LENGTH_SHORT).show();
+                        try {
+                            JSONObject jsonResponse = new JSONObject(response);
+                            String status = jsonResponse.getString("status");
+                            
+                            if (status.equals("success")) {
+                                // Get user ID from response
+                                int userId = jsonResponse.getInt("user_id");
+                                // Store user ID in session
+                                userSession.setUserId(userId);
+                                // Login successful
+                                startActivity(new Intent(LoginActivity.this, MainActivity.class));
+                                finish();
+                            } else {
+                                // Login failed
+                                Toast.makeText(LoginActivity.this, "Invalid username or password", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            Toast.makeText(LoginActivity.this, "Error parsing response", Toast.LENGTH_SHORT).show();
                         }
                     }
                 },

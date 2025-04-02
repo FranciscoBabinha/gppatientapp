@@ -17,6 +17,7 @@ import org.json.JSONObject;
 
 public abstract class BaseWebActivity extends AppCompatActivity {
     protected WebView webView;
+    protected UserSession userSession;
     protected abstract String getPageTitle();
     protected abstract String getUrl();
     protected abstract String[] getTableHeaders();
@@ -39,6 +40,17 @@ public abstract class BaseWebActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_web_view);
+
+        // Initialize UserSession
+        userSession = UserSession.getInstance(this);
+
+        // Check if user is logged in
+        if (!userSession.isLoggedIn()) {
+            // Redirect to login activity
+            startActivity(new android.content.Intent(this, LoginActivity.class));
+            finish();
+            return;
+        }
 
         // Setup toolbar
         Toolbar toolbar = findViewById(R.id.topAppBar);
@@ -69,7 +81,8 @@ public abstract class BaseWebActivity extends AppCompatActivity {
         webSettings.setDisplayZoomControls(false);
 
         // Fetch data and display it
-        new FetchDataTask().execute(getUrl());
+        String urlWithUserId = getUrl() + "?patient_id=" + userSession.getUserId();
+        new FetchDataTask().execute(urlWithUserId);
     }
 
     private class FetchDataTask extends AsyncTask<String, Void, String> {
