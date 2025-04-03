@@ -25,14 +25,7 @@ public class VaccinesActivity extends BaseWebActivity {
     }
 
     private String getBaseUrl() {
-        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
-
-        if (activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_WIFI) {
-            return "http://192.168.1.40/GP/gp_app/"; // Home Wi-Fi URL
-        } else if (activeNetwork != null && activeNetwork.getType() == ConnectivityManager.TYPE_MOBILE) {
-            return "http://172.20.10.3/GP/gp_app/"; // Mobile Data URL
-        }
-        return null;
+        // Always return the mobile data URL
+        return "http://172.20.10.3/GP/gp_app/";
     }
 }
