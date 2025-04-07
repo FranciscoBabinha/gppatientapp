@@ -152,8 +152,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private String getBaseUrl() {
-        // Always return the mobile data URL
-        return "http://172.20.10.3/GP/gp_app/";
+        // Change to own IP
+        //return "http://172.20.10.3/GP/gp_app/";
+        return "http://192.168.1.40/GP/gp_app/";
     }
 
     private void showPopupMenu(View view) {

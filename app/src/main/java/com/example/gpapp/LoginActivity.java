@@ -75,6 +75,10 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(String response) {
                         try {
+                            if (response == null || response.isEmpty()) {
+                                Toast.makeText(LoginActivity.this, "Empty response from server", Toast.LENGTH_SHORT).show();
+                                return;
+                            }
                             JSONObject jsonResponse = new JSONObject(response);
                             String status = jsonResponse.getString("status");
                             
@@ -91,7 +95,7 @@ public class LoginActivity extends AppCompatActivity {
                                 Toast.makeText(LoginActivity.this, "Invalid username or password", Toast.LENGTH_SHORT).show();
                             }
                         } catch (Exception e) {
-                            Toast.makeText(LoginActivity.this, "Error parsing response", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(LoginActivity.this, "Server error: " + response, Toast.LENGTH_LONG).show();
                         }
                     }
                 },
@@ -114,7 +118,8 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private String getBaseUrl() {
-        // Always return the mobile data URL
-        return "http://172.20.10.3/GP/gp_app/";
+        // Change to own IP
+        //return "http://172.20.10.3/GP/gp_app/";
+        return "http://192.168.1.40/GP/gp_app/";
     }
 }
