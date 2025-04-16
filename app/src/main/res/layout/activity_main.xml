@@ -149,13 +149,36 @@
     </LinearLayout>
 
     <!-- Bottom Navigation -->
-    <com.google.android.material.bottomnavigation.BottomNavigationView
+    <LinearLayout
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:background="?attr/colorSurface"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:menu="@menu/bottom_nav_menu" />
+        android:orientation="horizontal"
+        android:background="#F0F0F0"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/nav_payments"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Payments"
+            android:textSize="14sp"
+            app:icon="@drawable/ic_payments"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/nav_linked_apps"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Linked Apps"
+            android:textSize="14sp"
+            app:icon="@drawable/ic_linked_apps"
+            style="@style/Widget.Material3.Button.OutlinedButton" />
+    </LinearLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

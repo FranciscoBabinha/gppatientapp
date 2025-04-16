@@ -50,6 +50,13 @@
         <activity
             android:name=".AppointmentsActivity"
             android:exported="false" />
+        <activity
+            android:name=".LinkedAppsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".LinkedAppsLandingActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Gpapp" />
     </application>
 
 </manifest>

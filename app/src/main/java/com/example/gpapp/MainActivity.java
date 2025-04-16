@@ -87,6 +87,13 @@ public class MainActivity extends AppCompatActivity {
         setupButton(R.id.btn_results, ResultsActivity.class);
         setupButton(R.id.btn_documents, DocumentsActivity.class);
         setupButton(R.id.btn_vaccines, VaccinesActivity.class);
+        
+        // Setup bottom navigation buttons
+        MaterialButton linkedAppsButton = findViewById(R.id.nav_linked_apps);
+        linkedAppsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, LinkedAppsLandingActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void setupButton(int buttonId, Class<?> activityClass) {
