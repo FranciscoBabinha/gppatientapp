@@ -19,7 +19,11 @@ $result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
-    echo json_encode(['status' => 'success', 'user_id' => $user['id']]);
+    echo json_encode([
+        'status' => 'success', 
+        'user_id' => $user['id'],
+        'patient_id' => $user['patient_id']
+    ]);
 } else {
     echo json_encode(['status' => 'failure']);
 }

@@ -124,3 +124,9 @@ VALUES (2, 'Flu Shot', '2023-10-20');
 
 INSERT INTO users (username, password, patient_id)
 VALUES ('anne', '4321', 2);
+
+-- Insert admin user
+INSERT INTO users (username, password, patient_id)
+VALUES ('admin', '0000', NULL);
+
+select * from users;
