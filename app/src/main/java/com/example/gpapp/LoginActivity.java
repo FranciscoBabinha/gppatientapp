@@ -83,10 +83,12 @@ public class LoginActivity extends AppCompatActivity {
                             String status = jsonResponse.getString("status");
                             
                             if (status.equals("success")) {
-                                // Get user ID from response
+                                // Get user ID and patient ID from response
                                 int userId = jsonResponse.getInt("user_id");
-                                // Store user ID in session
+                                int patientId = jsonResponse.getInt("patient_id");
+                                // Store user ID and patient ID in session
                                 userSession.setUserId(userId);
+                                userSession.setPatientId(patientId);
                                 // Login successful
                                 startActivity(new Intent(LoginActivity.this, MainActivity.class));
                                 finish();

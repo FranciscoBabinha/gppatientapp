@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 public class UserSession {
     private static final String PREF_NAME = "UserSessionPref";
     private static final String KEY_USER_ID = "userId";
+    private static final String KEY_PATIENT_ID = "patientId";
     private static UserSession instance;
     private SharedPreferences prefs;
 
@@ -26,6 +27,14 @@ public class UserSession {
 
     public int getUserId() {
         return prefs.getInt(KEY_USER_ID, -1);
+    }
+
+    public void setPatientId(int patientId) {
+        prefs.edit().putInt(KEY_PATIENT_ID, patientId).apply();
+    }
+
+    public int getPatientId() {
+        return prefs.getInt(KEY_PATIENT_ID, -1);
     }
 
     public void clearSession() {

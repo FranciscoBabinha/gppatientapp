@@ -1,8 +1,8 @@
 package com.example.gpapp;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -21,11 +21,12 @@ public class LinkedAppsActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        // Setup WebView
-        WebView webView = findViewById(R.id.webView);
-        webView.setWebViewClient(new WebViewClient());
-        webView.getSettings().setJavaScriptEnabled(true);
-        webView.loadUrl("https://medical-app-e7e19.firebaseapp.com/");
+        // Open Google in default browser
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.hse.ie/"));
+        startActivity(browserIntent);
+        
+        // Finish this activity since we're opening the browser
+        finish();
     }
 
     @Override

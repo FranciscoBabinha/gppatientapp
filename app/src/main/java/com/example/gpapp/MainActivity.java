@@ -94,6 +94,12 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(MainActivity.this, LinkedAppsLandingActivity.class);
             startActivity(intent);
         });
+
+        MaterialButton paymentsButton = findViewById(R.id.nav_payments);
+        paymentsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, PaymentsActivity.class);
+            startActivity(intent);
+        });
     }
 
     private void setupButton(int buttonId, Class<?> activityClass) {

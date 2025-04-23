@@ -81,8 +81,8 @@ public abstract class BaseWebActivity extends AppCompatActivity {
         webSettings.setDisplayZoomControls(false);
 
         // Fetch data and display it
-        String urlWithUserId = getUrl() + "?patient_id=" + userSession.getUserId();
-        new FetchDataTask().execute(urlWithUserId);
+        String urlWithPatientId = getUrl() + "?patient_id=" + userSession.getPatientId();
+        new FetchDataTask().execute(urlWithPatientId);
     }
 
     private class FetchDataTask extends AsyncTask<String, Void, String> {
