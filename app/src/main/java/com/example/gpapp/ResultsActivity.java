@@ -27,6 +27,6 @@ public class ResultsActivity extends BaseWebActivity {
     private String getBaseUrl() {
         // Change to own IP
         //return "http://172.20.10.3/GP/gp_app/";
-        return "http://192.168.1.40/GP/gp_app/";
+        return "http://192.168.1.43/GP/gp_app/";
     }
 }
