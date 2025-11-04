@@ -1,10 +1,6 @@
 package com.example.gpapp;
 
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -14,12 +10,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import com.google.android.material.button.MaterialButton;
-import org.json.JSONArray;
-import org.json.JSONObject;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
 import android.widget.ImageButton;
 import android.widget.PopupMenu;
 
@@ -111,63 +105,29 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void fetchPatientName() {
-        new AsyncTask<Void, Void, String>() {
-            @Override
-            protected String doInBackground(Void... voids) {
-                try {
-                    // Dynamically determine the URL based on the network
-                    String baseUrl = getBaseUrl();
-                    if (baseUrl == null) {
-                        Log.e("FetchPatientName", "No valid base URL");
-                        return null;
+        int patientId = UserSession.getInstance(this).getPatientId();
+        if (patientId == -1) {
+            tvGreeting.setText("Hello!");
+            return;
+        }
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("patients").document(String.valueOf(patientId)).get()
+                .addOnSuccessListener(new OnSuccessListener<DocumentSnapshot>() {
+                    @Override
+                    public void onSuccess(DocumentSnapshot documentSnapshot) {
+                        String firstName = documentSnapshot.getString("first_name");
+                        if (firstName == null) firstName = "";
+                        String greeting = "Hello, " + firstName + "!";
+                        tvGreeting.setText(greeting);
                     }
-
-                    URL url = new URL(baseUrl + "api.php");
-                    HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                    connection.setRequestMethod("GET");
-                    connection.setRequestProperty("Accept", "application/json");
-
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                    StringBuilder response = new StringBuilder();
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        response.append(line);
-                    }
-                    reader.close();
-                    connection.disconnect();
-                    return response.toString();
-                } catch (Exception e) {
-                    Log.e("FetchPatientName", "Error fetching patient name", e);
-                    return null;
-                }
-            }
-
-            @Override
-            protected void onPostExecute(String result) {
-                if (result != null) {
-                    try {
-                        JSONArray jsonArray = new JSONArray(result);
-                        if (jsonArray.length() > 0) {
-                            JSONObject patient = jsonArray.getJSONObject(0);
-                            String firstName = patient.optString("first_name", "");
-                            String greeting = "Hello, " + firstName + "!";
-                            tvGreeting.setText(greeting);
-                        }
-                    } catch (Exception e) {
-                        Log.e("FetchPatientName", "Error parsing JSON", e);
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(Exception e) {
+                        Log.e("MainActivity", "Failed to fetch patient", e);
                         tvGreeting.setText("Hello!");
                     }
-                } else {
-                    tvGreeting.setText("Hello!");
-                }
-            }
-        }.execute();
-    }
-
-    private String getBaseUrl() {
-        // Change to own IP
-        //return "http://172.20.10.3/GP/gp_app/";
-        return "http://192.168.1.43/GP/gp_app/";
+                });
     }
 
     private void showPopupMenu(View view) {

@@ -11,22 +11,12 @@ public class ResultsActivity extends BaseWebActivity {
     }
 
     @Override
-    protected String getUrl() {
-        String baseUrl = getBaseUrl();
-        if (baseUrl == null) {
-            return ""; // Return empty string if no network is detected
-        }
-        return baseUrl + "results.php";
+    protected String getSubcollectionName() {
+        return "results";
     }
 
     @Override
     protected String[] getTableHeaders() {
         return new String[]{"result_description", "date"};
-    }
-
-    private String getBaseUrl() {
-        // Change to own IP
-        //return "http://172.20.10.3/GP/gp_app/";
-        return "http://192.168.1.43/GP/gp_app/";
     }
 }
