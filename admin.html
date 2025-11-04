@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AllHealth - Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <header>
+      <h1>Admin Panel</h1>
+      <div>
+        <a class="btn-secondary" href="dashboard.html" style="margin-right:8px;">Back</a>
+        <a id="logoutBtn" class="logout-btn" href="#">Logout</a>
+      </div>
+    </header>
+
+    <div class="patients-list">
+      <h2>Patients</h2>
+      <div class="patient-form" style="margin-bottom:16px;">
+        <h2>Add Patient</h2>
+        <div class="form-section">
+          <label>Patient ID</label>
+          <input id="newPid" type="text" placeholder="e.g. 3" />
+        </div>
+        <div class="form-section">
+          <label>First name</label>
+          <input id="newFirst" type="text" />
+        </div>
+        <div class="form-section">
+          <label>Second name</label>
+          <input id="newSecond" type="text" />
+        </div>
+        <div class="form-section">
+          <label>Username (for users mapping)</label>
+          <input id="newUsername" type="text" placeholder="e.g. john" />
+        </div>
+        <a href="#" id="addPatientBtn" class="btn-primary">Add Patient</a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>First name</th>
+            <th>Second name</th>
+            <th>Diagnoses</th>
+            <th>Allergies</th>
+            <th>Medications</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="patientsBody"></tbody>
+      </table>
+    </div>
+    <div class="patient-form" id="editForm" style="display:none; margin-top:16px;">
+      <h2>Edit Patient</h2>
+      <div class="form-section">
+        <label>Patient ID</label>
+        <input id="editPid" type="text" disabled />
+      </div>
+      <div class="form-section">
+        <label>First name</label>
+        <input id="editFirst" type="text" />
+      </div>
+      <div class="form-section">
+        <label>Second name</label>
+        <input id="editSecond" type="text" />
+      </div>
+      <div>
+        <a href="#" id="saveBtn" class="btn-edit">Save</a>
+        <a href="#" id="cancelBtn" class="btn-secondary">Cancel</a>
+      </div>
+    </div>
+
+    <div id="details" class="dashboard-grid" style="margin-top:16px;"></div>
+  </div>
+
+  <script type="module">
+    import { watchAuth, logout, getIsAdmin } from "./js/auth.js";
+    import { loadAllPatientsWithCounts, updatePatient, deletePatientCascade, addPatient, loadPatientDetails, addSubItem, updateSubItem, deleteSubItem } from "./js/admin.js";
+    document.getElementById("logoutBtn").addEventListener("click", async (e) => {
+      e.preventDefault();
+      await logout();
+    });
+
+    watchAuth(async (user) => {
+      if (!(await getIsAdmin(user))) {
+        alert("Not authorized");
+        window.location.href = "dashboard.html";
+        return;
+      }
+      const rows = await loadAllPatientsWithCounts();
+      const tbody = document.getElementById("patientsBody");
+      if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6">No patients found.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(r => `
+        <tr>
+          <td>${escapeHtml(r.id)}</td>
+          <td>${escapeHtml(r.first_name)}</td>
+          <td>${escapeHtml(r.second_name)}</td>
+          <td>${r.diagnosesCount}</td>
+          <td>${r.allergiesCount}</td>
+          <td>${r.medicationsCount}</td>
+          <td>
+            <a href="#" class="btn-edit" data-action="edit" data-pid="${escapeHtml(r.id)}" data-first="${escapeHtml(r.first_name)}" data-second="${escapeHtml(r.second_name)}">Edit</a>
+            <a href="#" class="btn-delete" data-action="delete" data-pid="${escapeHtml(r.id)}">Delete</a>
+          </td>
+        </tr>
+      `).join("");
+
+      tbody.addEventListener('click', async (ev) => {
+        const target = ev.target.closest('a');
+        if (!target) return;
+        ev.preventDefault();
+        const action = target.getAttribute('data-action');
+        const pid = target.getAttribute('data-pid');
+        if (action === 'edit') {
+          document.getElementById('editPid').value = pid;
+          document.getElementById('editFirst').value = target.getAttribute('data-first') || '';
+          document.getElementById('editSecond').value = target.getAttribute('data-second') || '';
+          document.getElementById('editForm').style.display = 'block';
+          window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+          renderDetails(pid);
+        } else if (action === 'delete') {
+          if (confirm(`Delete patient ${pid} and all their records?`)) {
+            try {
+              await deletePatientCascade(pid);
+              location.reload();
+            } catch (e) {
+              alert('Delete failed');
+            }
+          }
+        }
+      });
+
+      document.getElementById('cancelBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('editForm').style.display = 'none';
+      });
+
+      document.getElementById('saveBtn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const pid = document.getElementById('editPid').value;
+        const first = document.getElementById('editFirst').value.trim();
+        const second = document.getElementById('editSecond').value.trim();
+        try {
+          await updatePatient(pid, { first_name: first, second_name: second });
+          location.reload();
+        } catch (err) {
+          alert('Save failed');
+        }
+      });
+
+      document.getElementById('addPatientBtn').addEventListener('click', async (e) => {
+        e.preventDefault();
+        const pid = document.getElementById('newPid').value.trim();
+        const first = document.getElementById('newFirst').value.trim();
+        const second = document.getElementById('newSecond').value.trim();
+        const username = document.getElementById('newUsername').value.trim();
+        if (!pid || !first || !second) { alert('Please fill required fields'); return; }
+        try {
+          await addPatient(pid, first, second, username);
+          location.reload();
+        } catch (err) {
+          alert('Add failed');
+        }
+      });
+    }, () => {
+      window.location.href = "index.html";
+    });
+
+    function escapeHtml(s) {
+      return String(s ?? "")
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    async function renderDetails(pid) {
+      const details = await loadPatientDetails(pid);
+      const container = document.getElementById('details');
+      const sections = [
+        { key: 'diagnoses', title: 'Diagnoses', fields: ['diagnosis','date'] },
+        { key: 'allergies', title: 'Allergies', fields: ['allergy','severity'] },
+        { key: 'medications', title: 'Medications', fields: ['medication_name','dosage'] },
+        { key: 'results', title: 'Results', fields: ['result_description','date'] },
+        { key: 'documents', title: 'Documents', fields: ['document_title','upload_date'] },
+        { key: 'vaccines', title: 'Vaccines', fields: ['vaccine_name','date_administered'] },
+      ];
+      const cards = sections.map(sec => {
+        const rows = (details[sec.key] || []).map(r => {
+          const values = sec.fields.map(f => `<p><strong>${escapeHtml(labelOf(f))}:</strong> ${escapeHtml(r[f] || '')}</p>`).join('');
+          return `<div class="info-card">
+            ${values}
+            <div>
+              <a href="#" class="btn-edit" data-sec="${sec.key}" data-action="editItem" data-id="${escapeHtml(r.id)}" data-pid="${escapeHtml(pid)}">Edit</a>
+              <a href="#" class="btn-delete" data-sec="${sec.key}" data-action="delItem" data-id="${escapeHtml(r.id)}" data-pid="${escapeHtml(pid)}">Delete</a>
+            </div>
+          </div>`;
+        }).join('');
+        const addForm = `<div class="patient-form" style="margin-top:8px;">
+          <h2>Add ${escapeHtml(sec.title.slice(0,-1))}</h2>
+          ${sec.fields.map(f => `<div class="form-section"><label>${escapeHtml(labelOf(f))}</label><input data-sec="${sec.key}" data-field="${f}" type="text" /></div>`).join('')}
+          <a href="#" class="btn-primary" data-sec="${sec.key}" data-action="addItem" data-pid="${escapeHtml(pid)}">Add</a>
+        </div>`;
+        return `<div>${rows || ''}${addForm}</div>`;
+      }).join('');
+      container.innerHTML = cards;
+
+      container.onclick = async (ev) => {
+        const a = ev.target.closest('a');
+        if (!a) return;
+        ev.preventDefault();
+        const action = a.getAttribute('data-action');
+        const sec = a.getAttribute('data-sec');
+        const curPid = a.getAttribute('data-pid');
+        if (action === 'addItem') {
+          const inputs = container.querySelectorAll(`input[data-sec="${sec}"][data-field]`);
+          const item = {};
+          inputs.forEach(inp => item[inp.getAttribute('data-field')] = inp.value.trim());
+          try { await addSubItem(curPid, sec, item); renderDetails(curPid); } catch { alert('Add failed'); }
+        } else if (action === 'delItem') {
+          const id = a.getAttribute('data-id');
+          if (confirm('Delete item?')) {
+            try { await deleteSubItem(curPid, sec, id); renderDetails(curPid); } catch { alert('Delete failed'); }
+          }
+        } else if (action === 'editItem') {
+          const id = a.getAttribute('data-id');
+          const inputs = container.querySelectorAll(`input[data-sec="${sec}"][data-field]`);
+          const item = {};
+          inputs.forEach(inp => item[inp.getAttribute('data-field')] = inp.value.trim());
+          try { await updateSubItem(curPid, sec, id, item); renderDetails(curPid); } catch { alert('Save failed'); }
+        }
+      };
+    }
+
+    function labelOf(f) {
+      const map = {
+        diagnosis: 'Diagnosis',
+        date: 'Date',
+        allergy: 'Allergy',
+        severity: 'Severity',
+        medication_name: 'Medication',
+        dosage: 'Dosage',
+        result_description: 'Description',
+        document_title: 'Title',
+        upload_date: 'Upload Date',
+        vaccine_name: 'Vaccine',
+        date_administered: 'Date',
+      };
+      return map[f] || f;
+    }
+  </script>
+</body>
+</html>
+
+

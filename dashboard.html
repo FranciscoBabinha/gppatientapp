@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AllHealth - Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14'%3E%F0%9F%A9%BA%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <div class="dashboard-container">
+    <header>
+      <h1>AllHealth Portal</h1>
+      <a id="logoutBtn" class="logout-btn" href="#">Logout</a>
+    </header>
+    <div class="dashboard-grid">
+      <div id="diagnoses"></div>
+      <div id="allergies"></div>
+      <div id="medications"></div>
+      <div id="results"></div>
+      <div id="documents"></div>
+      <div id="vaccines"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { watchAuth, logout, getPatientIdForUser, getIsAdmin } from "./js/auth.js";
+    import { loadSubcollection } from "./js/data.js";
+    import { renderCards } from "./js/ui.js";
+
+    document.getElementById("logoutBtn").addEventListener("click", async (e) => {
+      e.preventDefault();
+      await logout();
+    });
+
+    watchAuth(async (user) => {
+      try {
+        if (await getIsAdmin(user)) {
+          window.location.href = "admin.html";
+          return;
+        }
+        const patientId = await getPatientIdForUser(user);
+
+        const [diagnoses, allergies, meds, results, documents, vaccines] = await Promise.all([
+          loadSubcollection(patientId, "diagnoses", ["diagnosis", "date"]),
+          loadSubcollection(patientId, "allergies", ["allergy", "severity"]),
+          loadSubcollection(patientId, "medications", ["medication_name", "dosage"]),
+          loadSubcollection(patientId, "results", ["result_description", "date"]),
+          loadSubcollection(patientId, "documents", ["document_title", "upload_date"]),
+          loadSubcollection(patientId, "vaccines", ["vaccine_name", "date_administered"]),
+        ]);
+
+        renderCards(document.getElementById("diagnoses"), "Diagnoses", diagnoses, ["diagnosis", "date"], ["Diagnosis", "Date"]);
+        renderCards(document.getElementById("allergies"), "Allergies", allergies, ["allergy", "severity"], ["Allergy", "Severity"]);
+        renderCards(document.getElementById("medications"), "Medications", meds, ["medication_name", "dosage"], ["Medication", "Dosage"]);
+        renderCards(document.getElementById("results"), "Results", results, ["result_description", "date"], ["Description", "Date"]);
+        renderCards(document.getElementById("documents"), "Documents", documents, ["document_title", "upload_date"], ["Title", "Upload Date"]);
+        renderCards(document.getElementById("vaccines"), "Vaccines", vaccines, ["vaccine_name", "date_administered"], ["Vaccine", "Date"]);
+
+      } catch (e) {
+        alert("Failed to load data");
+      }
+    }, () => {
+      window.location.href = "index.html";
+    });
+  </script>
+</body>
+</html>
