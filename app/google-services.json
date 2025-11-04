@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "700907151773",
+    "project_id": "allhealth-8d2e3",
+    "storage_bucket": "allhealth-8d2e3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:700907151773:android:70d000eb0d83a5776d0f74",
+        "android_client_info": {
+          "package_name": "com.example.gpapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDsT9Oiv5FrUw5kdNUWks1_BYHf-EsvCDA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
