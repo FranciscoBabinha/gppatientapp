@@ -22,7 +22,7 @@ public class LinkedAppsActivity extends AppCompatActivity {
         }
 
         // Open Google in default browser
-        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.hse.ie/"));
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://allhealth-8d2e3.web.app/"));
         startActivity(browserIntent);
         
         // Finish this activity since we're opening the browser
