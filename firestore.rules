@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function emailPrefix() {
+      return request.auth.token.email.split('@')[0];
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() &&
+             exists(/databases/$(database)/documents/users/$(emailPrefix()));
+    }
+
+    function userPatientId() {
+      return hasUserDoc()
+        ? get(/databases/$(database)/documents/users/$(emailPrefix())).data.patient_id
+        : null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (hasUserDoc() &&
+          get(/databases/$(database)/documents/users/$(emailPrefix())).data.isAdmin == true
+        ) ||
+        (exists(/databases/$(database)/documents/userProfiles/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/userProfiles/$(request.auth.uid)).data.isAdmin == true
+        )
+      );
+    }
+
+    match /users/{username} {
+      allow read: if isSignedIn() && (username == emailPrefix() || isAdmin());
+      allow write: if false;
+    }
+
+    match /patients/{pid} {
+      allow read: if isAdmin() || (isSignedIn() && pid == userPatientId());
+      allow write: if isAdmin();
+
+      match /{sub=**}/{doc} {
+        allow read: if isAdmin() || (isSignedIn() && pid == userPatientId());
+        allow write: if isAdmin();
+      }
+    }
+
+    match /userProfiles/{uid} {
+      allow read: if isSignedIn() && uid == request.auth.uid;
+      allow write: if false;
+    }
+
+    match /appointments/{docId} {
+      allow read: if isSignedIn() || isAdmin();
+      allow create: if isSignedIn()
+        && hasUserDoc()
+        && request.resource.data.patientId == userPatientId()
+        && request.resource.data.date is string
+        && request.resource.data.timeSlot is string;
+      allow update, delete: if isAdmin();
+    }
+  }
+}
+
