@@ -40,7 +40,15 @@ service cloud.firestore {
 
     match /patients/{pid} {
       allow read: if isAdmin() || (isSignedIn() && pid == userPatientId());
-      allow write: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (
+        isSignedIn()
+        && pid == userPatientId()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(['balance_due'])
+        && request.resource.data.balance_due is number
+        && request.resource.data.balance_due >= 0
+      );
+      allow delete: if isAdmin();
 
       match /{sub=**}/{doc} {
         allow read: if isAdmin() || (isSignedIn() && pid == userPatientId());
