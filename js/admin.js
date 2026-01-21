@@ -1,28 +1,26 @@
 // js/admin.js
 import { db } from "./firebase-init.js";
-import { collection, getDocs, doc, setDoc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, addDoc } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
-export async function loadAllPatientsWithCounts() {
+export async function loadAllPatients() {
   const patientsSnap = await getDocs(collection(db, "patients"));
   const results = [];
   for (const docSnap of patientsSnap.docs) {
     const pid = docSnap.id;
     const data = docSnap.data() || {};
-    const [diagSnap, allgSnap, medsSnap] = await Promise.all([
-      getDocs(collection(db, "patients", pid, "diagnoses")),
-      getDocs(collection(db, "patients", pid, "allergies")),
-      getDocs(collection(db, "patients", pid, "medications")),
-    ]);
     results.push({
       id: pid,
       first_name: data.first_name || "",
       second_name: data.second_name || "",
-      diagnosesCount: diagSnap.size,
-      allergiesCount: allgSnap.size,
-      medicationsCount: medsSnap.size,
     });
   }
   return results;
+}
+
+export async function loadPatientProfile(pid) {
+  const ref = doc(db, "patients", String(pid));
+  const snap = await getDoc(ref);
+  return snap.exists() ? (snap.data() || {}) : {};
 }
 
 export async function updatePatient(pid, data) {
