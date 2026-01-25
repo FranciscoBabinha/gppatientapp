@@ -413,6 +413,19 @@ th {
     font-weight: 600;
 }
 
+.status-button {
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-button:hover,
+.status-button.active {
+    background: #bae6fd;
+    color: #075985;
+    box-shadow: 0 6px 12px rgba(14, 116, 144, 0.2);
+}
+
 .dashboard-body .logout-btn {
     background: #0f172a;
     border-radius: 999px;
@@ -508,6 +521,68 @@ th {
 .dashboard-body .info-card p {
     color: #475569;
     font-size: 0.95rem;
+}
+
+.payments-view {
+    margin-top: 1rem;
+}
+
+.payments-layout {
+    display: flex;
+    justify-content: center;
+}
+
+.payments-card {
+    max-width: 520px;
+    width: 100%;
+    text-align: left;
+}
+
+.payments-subtitle {
+    color: #64748b;
+    margin-bottom: 0.75rem;
+}
+
+.payments-amount {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1.5rem;
+}
+
+.payments-field {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.payments-field label {
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.payments-field input {
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 1rem;
+}
+
+.payments-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.payments-note[data-tone="info"] {
+    color: #0369a1;
+}
+
+.payments-note[data-tone="success"] {
+    color: #15803d;
+}
+
+.payments-note[data-tone="error"] {
+    color: #b91c1c;
 }
 
 @media (max-width: 900px) {

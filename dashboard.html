@@ -20,47 +20,126 @@
         </div>
       </div>
       <div class="header-actions">
-        <span class="status-pill">Secure Session</span>
+        <button id="paymentsBtn" class="status-pill status-button" type="button">Payments</button>
         <a id="logoutBtn" class="logout-btn" href="#">Logout</a>
       </div>
     </header>
 
-    <section class="welcome-card">
-      <div>
-        <h2>Stay on top of your care</h2>
-        <p>Quickly review diagnoses, medications, results, and more in one place.</p>
-      </div>
-      <div class="welcome-highlights">
-        <div class="highlight">
-          <span>Records</span>
-          <strong>Always Updated</strong>
+    <div id="overviewView">
+      <section class="welcome-card">
+        <div>
+          <h2>Stay on top of your care</h2>
+          <p>Quickly review diagnoses, medications, results, and more in one place.</p>
         </div>
-        <div class="highlight">
-          <span>Access</span>
-          <strong>Any Device</strong>
+        <div class="welcome-highlights">
+          <div class="highlight">
+            <span>Records</span>
+            <strong>Always Updated</strong>
+          </div>
+          <div class="highlight">
+            <span>Access</span>
+            <strong>Any Device</strong>
+          </div>
+        </div>
+      </section>
+
+      <div class="dashboard-grid">
+        <div id="diagnoses" class="dashboard-card"></div>
+        <div id="allergies" class="dashboard-card"></div>
+        <div id="medications" class="dashboard-card"></div>
+        <div id="results" class="dashboard-card"></div>
+        <div id="documents" class="dashboard-card"></div>
+        <div id="vaccines" class="dashboard-card"></div>
+      </div>
+    </div>
+
+    <section id="paymentsView" class="payments-view view-hidden">
+      <div class="payments-layout">
+        <div class="info-card payments-card">
+          <h2>Payments</h2>
+          <p class="payments-subtitle">Your outstanding balance</p>
+          <div class="payments-amount" id="balanceValue">Loading...</div>
+          <div class="payments-field">
+            <label for="paymentAmount">Payment amount</label>
+            <input id="paymentAmount" type="number" min="0" step="0.01" placeholder="Enter amount" />
+          </div>
+          <button class="btn-primary" id="payBtn" type="button">Pay now</button>
+          <p id="paymentNote" class="payments-note"></p>
         </div>
       </div>
     </section>
-
-    <div class="dashboard-grid">
-      <div id="diagnoses" class="dashboard-card"></div>
-      <div id="allergies" class="dashboard-card"></div>
-      <div id="medications" class="dashboard-card"></div>
-      <div id="results" class="dashboard-card"></div>
-      <div id="documents" class="dashboard-card"></div>
-      <div id="vaccines" class="dashboard-card"></div>
-    </div>
   </div>
 
   <script type="module">
     import { watchAuth, logout, getPatientIdForUser, getIsAdmin } from "./js/auth.js";
-    import { loadSubcollection } from "./js/data.js";
+    import { loadSubcollection, getPatientBalance, processPayment } from "./js/data.js";
     import { renderCards } from "./js/ui.js";
 
     document.getElementById("logoutBtn").addEventListener("click", async (e) => {
       e.preventDefault();
       await logout();
     });
+
+    const paymentsBtn = document.getElementById("paymentsBtn");
+    const overviewView = document.getElementById("overviewView");
+    const paymentsView = document.getElementById("paymentsView");
+    const balanceValue = document.getElementById("balanceValue");
+    const paymentAmount = document.getElementById("paymentAmount");
+    const payBtn = document.getElementById("payBtn");
+    const paymentNote = document.getElementById("paymentNote");
+    let showingPayments = false;
+    let currentBalance = 0;
+    let balanceLoaded = false;
+
+    function setView(isPayments) {
+      showingPayments = isPayments;
+      if (isPayments) {
+        overviewView.classList.add("view-hidden");
+        paymentsView.classList.remove("view-hidden");
+        paymentsBtn.textContent = "Overview";
+        paymentsBtn.classList.add("active");
+      } else {
+        paymentsView.classList.add("view-hidden");
+        overviewView.classList.remove("view-hidden");
+        paymentsBtn.textContent = "Payments";
+        paymentsBtn.classList.remove("active");
+      }
+    }
+
+    paymentsBtn.addEventListener("click", () => {
+      setView(!showingPayments);
+    });
+
+    function setPaymentNote(message, tone = "info") {
+      paymentNote.textContent = message;
+      paymentNote.dataset.tone = tone;
+    }
+
+    function formatCurrency(amount) {
+      return `${amount.toFixed(2)}€`;
+    }
+
+    function updateBalanceDisplay() {
+      balanceValue.textContent = formatCurrency(currentBalance);
+    }
+
+    async function loadBalance(patientId) {
+      balanceLoaded = false;
+      payBtn.disabled = true;
+      balanceValue.textContent = "Loading...";
+      try {
+        currentBalance = await getPatientBalance(patientId);
+        balanceLoaded = true;
+        updateBalanceDisplay();
+        payBtn.disabled = false;
+        setPaymentNote("Payments update instantly in your profile.", "info");
+      } catch (e) {
+        balanceLoaded = false;
+        balanceValue.textContent = "Unavailable";
+        payBtn.disabled = true;
+        setPaymentNote("We could not load your balance. Try again soon.", "error");
+      }
+    }
 
     watchAuth(async (user) => {
       try {
@@ -69,6 +148,7 @@
           return;
         }
         const patientId = await getPatientIdForUser(user);
+        await loadBalance(patientId);
 
         const [diagnoses, allergies, meds, results, documents, vaccines] = await Promise.all([
           loadSubcollection(patientId, "diagnoses", ["diagnosis", "date"]),
@@ -86,6 +166,63 @@
         renderCards(document.getElementById("documents"), "Documents", documents, ["document_title", "upload_date"], ["Title", "Upload Date"]);
         renderCards(document.getElementById("vaccines"), "Vaccines", vaccines, ["vaccine_name", "date_administered"], ["Vaccine", "Date"]);
 
+        paymentAmount.addEventListener("input", () => {
+          if (!balanceLoaded) {
+            payBtn.disabled = true;
+            return;
+          }
+          const raw = paymentAmount.value.trim();
+          if (!raw) {
+            payBtn.disabled = false;
+            setPaymentNote("Enter an amount to pay toward your balance.", "info");
+            return;
+          }
+          const value = Number.parseFloat(raw);
+          if (!Number.isFinite(value) || value <= 0) {
+            payBtn.disabled = true;
+            setPaymentNote("Enter a valid payment amount.", "error");
+            return;
+          }
+          if (value > currentBalance) {
+            payBtn.disabled = true;
+            setPaymentNote("Payment amount cannot exceed your remaining balance.", "error");
+            return;
+          }
+          payBtn.disabled = false;
+          setPaymentNote("Ready to apply this payment.", "success");
+        });
+
+        payBtn.addEventListener("click", async () => {
+          if (!balanceLoaded) {
+            setPaymentNote("Loading your balance. Please wait.", "error");
+            return;
+          }
+          const value = Number.parseFloat(paymentAmount.value.trim());
+          if (!Number.isFinite(value) || value <= 0) {
+            setPaymentNote("Please enter a valid amount.", "error");
+            return;
+          }
+          if (value > currentBalance) {
+            setPaymentNote("Payment amount cannot exceed your remaining balance.", "error");
+            return;
+          }
+          payBtn.disabled = true;
+          try {
+            const newBalance = await processPayment(patientId, value);
+            currentBalance = newBalance;
+            updateBalanceDisplay();
+            paymentAmount.value = "";
+            setPaymentNote(`Payment of ${formatCurrency(value)} processed successfully.`, "success");
+            payBtn.disabled = false;
+          } catch (e) {
+            if (e?.message === "amount_exceeds_balance") {
+              setPaymentNote("Payment amount cannot exceed your remaining balance.", "error");
+            } else {
+              setPaymentNote("Payment failed. Please try again.", "error");
+            }
+            payBtn.disabled = false;
+          }
+        });
       } catch (e) {
         alert("Failed to load data");
       }
