@@ -5,9 +5,12 @@ import {
   doc,
   getDoc,
   getDocs,
+  query,
   runTransaction,
+  serverTimestamp,
   setDoc,
   Timestamp,
+  where,
 } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
 function fmt(val) {
@@ -75,5 +78,51 @@ export async function processPayment(patientId, paymentAmount) {
       transaction.set(ref, { [BALANCE_FIELD]: newBalance }, { merge: true });
     }
     return newBalance;
+  });
+}
+
+function buildAppointmentId(dateKey, timeSlot) {
+  const normalizedTime = String(timeSlot)
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/:/g, "");
+  return `${dateKey}_${normalizedTime}`;
+}
+
+export async function getBookedTimeSlots(dateKey) {
+  const q = query(collection(db, "appointments"), where("date", "==", dateKey));
+  const snap = await getDocs(q);
+  const booked = new Set();
+  snap.forEach((docSnap) => {
+    const slot = docSnap.get("timeSlot");
+    if (slot) {
+      booked.add(slot);
+    }
+  });
+  return booked;
+}
+
+export async function bookAppointment({ dateKey, timeSlot, patientId, userUid }) {
+  if (!dateKey || !timeSlot || !patientId) {
+    throw new Error("invalid_booking");
+  }
+  const docId = buildAppointmentId(dateKey, timeSlot);
+  const ref = doc(db, "appointments", docId);
+  return runTransaction(db, async (transaction) => {
+    const snap = await transaction.get(ref);
+    if (snap.exists()) {
+      throw new Error("slot_taken");
+    }
+    const payload = {
+      date: dateKey,
+      timeSlot,
+      patientId: String(patientId),
+      createdAt: serverTimestamp(),
+    };
+    if (userUid) {
+      payload.userUid = userUid;
+    }
+    transaction.set(ref, payload);
+    return payload;
   });
 }
