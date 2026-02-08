@@ -1,14 +1,23 @@
 package com.example.gpapp;
 
+import android.Manifest;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.util.Log;
 import android.widget.CalendarView;
 import android.widget.ImageButton;
 import android.widget.Toast;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import com.google.android.material.button.MaterialButton;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
@@ -16,6 +25,8 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,6 +41,7 @@ import java.util.Set;
 
 public class AppointmentsActivity extends AppCompatActivity {
     private static final String TAG = "AppointmentsActivity";
+    private static final int CALENDAR_PERMISSION_REQUEST_CODE = 2001;
     private static final DateTimeFormatter DATE_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd", Locale.US);
     private static final List<TimeSlotDefinition> ALL_TIME_SLOTS = Arrays.asList(
@@ -46,6 +58,9 @@ public class AppointmentsActivity extends AppCompatActivity {
     private TimeSlotAdapter timeSlotAdapter;
     private FirebaseFirestore firestore;
     private LocalDate selectedDate;
+    private LocalDate pendingCalendarDate;
+    private TimeSlotDefinition pendingCalendarSlot;
+    private String selectedTimeSlot;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,6 +96,9 @@ public class AppointmentsActivity extends AppCompatActivity {
         timeSlotAdapter = new TimeSlotAdapter(this::onTimeSlotSelected);
         timeSlotsRecyclerView.setAdapter(timeSlotAdapter);
 
+        MaterialButton confirmAppointmentButton = findViewById(R.id.confirmAppointmentButton);
+        confirmAppointmentButton.setOnClickListener(v -> onConfirmAppointment());
+
         // Load initial time slots for today
         Calendar calendar = Calendar.getInstance();
         LocalDate today = LocalDate.of(
@@ -113,8 +131,14 @@ public class AppointmentsActivity extends AppCompatActivity {
     }
 
     private void updateTimeSlots(LocalDate date) {
+        boolean dateChanged = selectedDate != null && !selectedDate.equals(date);
         selectedDate = date;
         String dateKey = DATE_FORMATTER.format(date);
+
+        if (dateChanged) {
+            selectedTimeSlot = null;
+            timeSlotAdapter.setSelectedTimeSlot(null);
+        }
 
         firestore.collection("appointments")
                 .whereEqualTo("date", dateKey)
@@ -130,6 +154,10 @@ public class AppointmentsActivity extends AppCompatActivity {
 
                     List<String> availableSlots = filterFutureTimeSlots(date, bookedSlots);
                     timeSlotAdapter.updateTimeSlots(availableSlots);
+                    if (selectedTimeSlot != null && !availableSlots.contains(selectedTimeSlot)) {
+                        selectedTimeSlot = null;
+                        timeSlotAdapter.setSelectedTimeSlot(null);
+                    }
                     if (availableSlots.isEmpty()) {
                         Toast.makeText(
                                 this,
@@ -168,6 +196,36 @@ public class AppointmentsActivity extends AppCompatActivity {
             return;
         }
 
+        selectedTimeSlot = timeSlot;
+        timeSlotAdapter.setSelectedTimeSlot(timeSlot);
+    }
+
+    private void onConfirmAppointment() {
+        if (selectedDate == null) {
+            Toast.makeText(this, "Please select a date first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (selectedTimeSlot == null) {
+            Toast.makeText(this, "Please select a time slot.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        TimeSlotDefinition slotDefinition = findTimeSlotDefinition(selectedTimeSlot);
+        if (slotDefinition != null && selectedDate.isEqual(LocalDate.now())
+                && slotDefinition.time.isBefore(LocalTime.now())) {
+            Toast.makeText(
+                    this,
+                    "This time has already passed. Please choose a future slot.",
+                    Toast.LENGTH_SHORT
+            ).show();
+            updateTimeSlots(selectedDate);
+            return;
+        }
+
+        bookAppointment(selectedTimeSlot, slotDefinition);
+    }
+
+    private void bookAppointment(String timeSlot, TimeSlotDefinition slotDefinition) {
         UserSession session = UserSession.getInstance(this);
         int patientId = session.getPatientId();
         if (patientId == -1) {
@@ -206,6 +264,9 @@ public class AppointmentsActivity extends AppCompatActivity {
                             "Appointment booked for " + timeSlot + " on " + dateKey,
                             Toast.LENGTH_SHORT
                     ).show();
+                    if (slotDefinition != null) {
+                        ensureCalendarPermissionThenAdd(selectedDate, slotDefinition);
+                    }
                     updateTimeSlots(selectedDate);
                 })
                 .addOnFailureListener(e -> {
@@ -235,6 +296,214 @@ public class AppointmentsActivity extends AppCompatActivity {
                 .replace(" ", "")
                 .replace(":", "");
         return dateKey + "_" + normalizedTime;
+    }
+
+    private void ensureCalendarPermissionThenAdd(LocalDate date, TimeSlotDefinition slotDefinition) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR)
+                == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR)
+                == PackageManager.PERMISSION_GRANTED) {
+            addAppointmentToCalendar(date, slotDefinition);
+            return;
+        }
+
+        pendingCalendarDate = date;
+        pendingCalendarSlot = slotDefinition;
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR},
+                CALENDAR_PERMISSION_REQUEST_CODE
+        );
+    }
+
+    private void addAppointmentToCalendar(LocalDate date, TimeSlotDefinition slotDefinition) {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR)
+                != PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR)
+                != PackageManager.PERMISSION_GRANTED) {
+            Toast.makeText(this, "Calendar permission is required to save the event.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Long calendarId = getPrimaryCalendarId();
+        if (calendarId == null) {
+            Toast.makeText(this, "No calendar available on this device.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        ZonedDateTime startTime = ZonedDateTime.of(date, slotDefinition.time, ZoneId.systemDefault());
+        ZonedDateTime endTime = startTime.plusHours(1);
+
+        ContentValues values = new ContentValues();
+        values.put(CalendarContract.Events.CALENDAR_ID, calendarId);
+        values.put(CalendarContract.Events.TITLE, "Doctor's Appointment");
+        values.put(CalendarContract.Events.DESCRIPTION, "Booked via GP Patient App");
+        values.put(CalendarContract.Events.DTSTART, startTime.toInstant().toEpochMilli());
+        values.put(CalendarContract.Events.DTEND, endTime.toInstant().toEpochMilli());
+        values.put(CalendarContract.Events.EVENT_TIMEZONE, ZoneId.systemDefault().getId());
+        values.put(CalendarContract.Events.AVAILABILITY, CalendarContract.Events.AVAILABILITY_BUSY);
+
+        ContentResolver resolver = getContentResolver();
+        try {
+            android.net.Uri eventUri = resolver.insert(CalendarContract.Events.CONTENT_URI, values);
+            if (eventUri == null) {
+                Toast.makeText(this, "Failed to add appointment to calendar.", Toast.LENGTH_SHORT).show();
+            } else {
+                Log.i(TAG, "Inserted calendar event uri=" + eventUri);
+            }
+        } catch (SecurityException e) {
+            Log.e(TAG, "Missing calendar permission", e);
+            Toast.makeText(this, "Calendar permission is required to save the event.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private Long getPrimaryCalendarId() {
+        ContentResolver resolver = getContentResolver();
+        String[] projection = new String[]{
+                CalendarContract.Calendars._ID,
+                CalendarContract.Calendars.IS_PRIMARY,
+                CalendarContract.Calendars.ACCOUNT_TYPE,
+                CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL
+        };
+
+        String writableVisibleSelection = CalendarContract.Calendars.VISIBLE + " = 1 AND "
+                + CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL + " >= "
+                + CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR;
+
+        Long visibleMatch = queryCalendarId(
+                resolver,
+                projection,
+                writableVisibleSelection
+        );
+        if (visibleMatch != null) {
+            return visibleMatch;
+        }
+
+        String writableAnySelection = CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL + " >= "
+                + CalendarContract.Calendars.CAL_ACCESS_CONTRIBUTOR;
+        Long anyMatch = queryCalendarId(resolver, projection, writableAnySelection);
+        if (anyMatch != null) {
+            return anyMatch;
+        }
+
+        return createLocalCalendar(resolver);
+    }
+
+    private Long queryCalendarId(ContentResolver resolver, String[] projection, String selection) {
+        try (android.database.Cursor cursor = resolver.query(
+                CalendarContract.Calendars.CONTENT_URI,
+                projection,
+                selection,
+                null,
+                null
+        )) {
+            if (cursor == null) {
+                Log.w(TAG, "Calendar query returned null cursor");
+                return null;
+            }
+            Long firstId = null;
+            Long firstGoogleId = null;
+            int count = 0;
+            StringBuilder accountTypes = new StringBuilder();
+            while (cursor.moveToNext()) {
+                count++;
+                long id = cursor.getLong(0);
+                if (firstId == null) {
+                    firstId = id;
+                }
+                int isPrimary = cursor.getInt(1);
+                String accountType = cursor.getString(2);
+                int accessLevel = cursor.getInt(3);
+                if (accountType != null) {
+                    if (accountTypes.length() > 0) {
+                        accountTypes.append(", ");
+                    }
+                    accountTypes.append(accountType).append("(").append(accessLevel).append(")");
+                }
+                if ("com.google".equals(accountType) && firstGoogleId == null) {
+                    firstGoogleId = id;
+                }
+                if (isPrimary == 1 && "com.google".equals(accountType)) {
+                    return id;
+                }
+            }
+            Log.i(TAG, "Calendar rows=" + count + " accountTypes=" + accountTypes);
+            if (firstGoogleId != null) {
+                return firstGoogleId;
+            }
+            return firstId;
+        } catch (SecurityException e) {
+            Log.e(TAG, "Missing calendar permission", e);
+            return null;
+        }
+    }
+
+    private Long createLocalCalendar(ContentResolver resolver) {
+        String accountName = "gpapp-local";
+        String accountType = CalendarContract.ACCOUNT_TYPE_LOCAL;
+
+        ContentValues values = new ContentValues();
+        values.put(CalendarContract.Calendars.ACCOUNT_NAME, accountName);
+        values.put(CalendarContract.Calendars.ACCOUNT_TYPE, accountType);
+        values.put(CalendarContract.Calendars.NAME, "GP Patient App");
+        values.put(CalendarContract.Calendars.CALENDAR_DISPLAY_NAME, "GP Patient App");
+        values.put(CalendarContract.Calendars.CALENDAR_COLOR, 0xFF1976D2);
+        values.put(CalendarContract.Calendars.CALENDAR_ACCESS_LEVEL, CalendarContract.Calendars.CAL_ACCESS_OWNER);
+        values.put(CalendarContract.Calendars.OWNER_ACCOUNT, accountName);
+        values.put(CalendarContract.Calendars.VISIBLE, 1);
+        values.put(CalendarContract.Calendars.SYNC_EVENTS, 1);
+
+        android.net.Uri uri = CalendarContract.Calendars.CONTENT_URI.buildUpon()
+                .appendQueryParameter(CalendarContract.CALLER_IS_SYNCADAPTER, "true")
+                .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_NAME, accountName)
+                .appendQueryParameter(CalendarContract.Calendars.ACCOUNT_TYPE, accountType)
+                .build();
+
+        try {
+            android.net.Uri result = resolver.insert(uri, values);
+            if (result == null) {
+                Log.w(TAG, "Failed to create local calendar");
+                return null;
+            }
+            long id = Long.parseLong(result.getLastPathSegment());
+            Log.i(TAG, "Created local calendar id=" + id);
+            return id;
+        } catch (SecurityException e) {
+            Log.e(TAG, "Missing calendar permission while creating local calendar", e);
+            return null;
+        } catch (NumberFormatException e) {
+            Log.e(TAG, "Failed to parse calendar id", e);
+            return null;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode,
+            @NonNull String[] permissions,
+            @NonNull int[] grantResults
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode != CALENDAR_PERMISSION_REQUEST_CODE) {
+            return;
+        }
+
+        boolean granted = true;
+        for (int result : grantResults) {
+            if (result != PackageManager.PERMISSION_GRANTED) {
+                granted = false;
+                break;
+            }
+        }
+
+        if (granted && pendingCalendarDate != null && pendingCalendarSlot != null) {
+            addAppointmentToCalendar(pendingCalendarDate, pendingCalendarSlot);
+        } else {
+            Toast.makeText(this, "Calendar permission denied.", Toast.LENGTH_SHORT).show();
+        }
+
+        pendingCalendarDate = null;
+        pendingCalendarSlot = null;
     }
 
     private List<String> filterFutureTimeSlots(LocalDate date, Set<String> bookedSlots) {
