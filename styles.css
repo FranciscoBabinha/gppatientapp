@@ -691,6 +691,167 @@ th {
     color: #b91c1c;
 }
 
+.admin-body .dashboard-shell {
+    max-width: 1280px;
+}
+
+.admin-body .admin-panel-card {
+    margin-bottom: 1.5rem;
+}
+
+.admin-panel-head {
+    margin-bottom: 1rem;
+}
+
+.admin-panel-head h2 {
+    color: #1d4ed8;
+    margin-bottom: 0.4rem;
+    font-size: 1.2rem;
+}
+
+.admin-panel-head p {
+    color: #64748b;
+    font-size: 0.95rem;
+}
+
+.admin-table-wrap {
+    overflow-x: auto;
+}
+
+.admin-body .admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 0.5rem;
+}
+
+.admin-body .admin-table th,
+.admin-body .admin-table td {
+    padding: 0.9rem 0.75rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-body .admin-table th {
+    font-weight: 600;
+    color: #334155;
+    background: #f8fafc;
+}
+
+.admin-body .name-link {
+    color: #1d4ed8;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.admin-body .name-link:hover {
+    color: #1e40af;
+    text-decoration: underline;
+}
+
+.admin-body .detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.admin-body .detail-header .btn-secondary {
+    width: auto;
+    padding: 0.6rem 1.1rem;
+}
+
+.admin-body .patient-form {
+    background: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
+.admin-body .admin-profile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+}
+
+.admin-body .form-section {
+    margin-bottom: 0;
+}
+
+.admin-body .form-section label {
+    display: block;
+    margin-bottom: 0.45rem;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.admin-body .form-section input {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border-radius: 10px;
+    border: 1px solid #e2e8f0;
+    font-size: 0.95rem;
+    background: #ffffff;
+}
+
+.admin-body .form-section input:disabled {
+    color: #64748b;
+    background: #f8fafc;
+}
+
+.admin-body .detail-sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.admin-body .section-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1rem;
+    background: #f8fafc;
+}
+
+.admin-body .section-header h3 {
+    color: #0f172a;
+}
+
+.admin-body .section-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-body .section-table th,
+.admin-body .section-table td {
+    padding: 0.65rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-body .section-table th {
+    font-weight: 600;
+    color: #475569;
+    background: #ffffff;
+}
+
+.admin-body .section-table input {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #ffffff;
+}
+
+.admin-body .detail-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.5rem;
+}
+
+.admin-body .detail-footer .btn-primary {
+    width: auto;
+    padding: 0.75rem 1.8rem;
+    border-radius: 999px;
+}
+
 @media (max-width: 900px) {
     .dashboard-header {
         flex-direction: column;
@@ -709,6 +870,15 @@ th {
 
     .appointments-body {
         grid-template-columns: 1fr;
+    }
+
+    .admin-body .detail-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-body .detail-header .btn-secondary {
+        width: auto;
     }
 }
 

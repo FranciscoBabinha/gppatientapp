@@ -5,45 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AllHealth - Admin</title>
   <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" href="logo.png" type="image/png" />
 </head>
-<body>
-  <div class="dashboard-container">
-    <header class="admin-header">
-      <h1>Admin Panel</h1>
-      <div class="admin-header-actions">
+<body class="dashboard-body admin-body">
+  <div class="dashboard-shell">
+    <header class="dashboard-header admin-dashboard-header">
+      <div class="brand">
+        <span class="brand-mark">
+          <img src="logo.png" alt="AllHealth logo" />
+        </span>
+        <div>
+          <p class="brand-kicker">AllHealth Portal</p>
+          <h1>Admin Panel</h1>
+        </div>
+      </div>
+      <div class="header-actions">
         <a id="logoutBtn" class="logout-btn" href="#">Logout</a>
       </div>
     </header>
 
-    <section id="listView" class="admin-section">
-      <h2>Patients</h2>
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Patient Name</th>
-          </tr>
-        </thead>
-        <tbody id="patientsBody"></tbody>
-      </table>
+    <section id="listView" class="info-card admin-panel-card">
+      <div class="admin-panel-head">
+        <h2>Patients</h2>
+        <p>Select a patient to review and update their records.</p>
+      </div>
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Patient Name</th>
+            </tr>
+          </thead>
+          <tbody id="patientsBody"></tbody>
+        </table>
+      </div>
     </section>
 
-    <section id="detailView" class="admin-section view-hidden">
+    <section id="detailView" class="info-card admin-panel-card view-hidden">
       <div class="detail-header">
         <h2 id="detailTitle">Patient Details</h2>
         <a href="#" id="detailBackBtn" class="btn-secondary">Back</a>
       </div>
 
-      <div class="patient-form">
+      <div class="patient-form admin-profile-grid">
         <div class="form-section">
-          <label>Patient ID</label>
+          <label for="editPid">Patient ID</label>
           <input id="editPid" type="text" disabled />
         </div>
         <div class="form-section">
-          <label>First name</label>
+          <label for="editFirst">First name</label>
           <input id="editFirst" type="text" />
         </div>
         <div class="form-section">
-          <label>Second name</label>
+          <label for="editSecond">Second name</label>
           <input id="editSecond" type="text" />
         </div>
       </div>
