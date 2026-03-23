@@ -27,7 +27,6 @@
     <section id="listView" class="info-card admin-panel-card">
       <div class="admin-panel-head">
         <h2>Patients</h2>
-        <p>Select a patient to review and update their records.</p>
       </div>
       <div class="admin-table-wrap">
         <table class="admin-table">
@@ -168,37 +167,37 @@
       const container = document.getElementById('details');
       container.innerHTML = sections.map(sec => {
         const rows = (details[sec.key] || []).map(item => renderRow(sec, item)).join('');
-        const emptyRow = `<tr><td colspan="${sec.fields.length}">No records yet.</td></tr>`;
+        const emptyRow = `<p class="section-empty">No records yet.</p>`;
         return `
           <div class="section-card">
             <div class="section-header">
               <h3>${escapeHtml(sec.title)}</h3>
             </div>
-            <table class="section-table">
-              <thead>
-                <tr>
-                  ${sec.fields.map(f => `<th>${escapeHtml(labelOf(f))}</th>`).join('')}
-                </tr>
-              </thead>
-              <tbody data-sec="${sec.key}">
-                ${rows || emptyRow}
-              </tbody>
-            </table>
+            <div class="section-items" data-sec="${sec.key}">
+              ${rows || emptyRow}
+            </div>
           </div>
         `;
       }).join('');
     }
 
     function renderRow(sec, item) {
-      const cells = sec.fields.map(f => {
+      const fields = sec.fields.map(f => {
         const value = formatFieldValue(f, item[f]);
         const type = isDateField(f) ? 'date' : 'text';
-        return `<td><input type="${type}" data-field="${f}" value="${escapeHtml(value)}" /></td>`;
+        return `
+          <div class="detail-item-field">
+            <label>${escapeHtml(labelOf(f))}</label>
+            <input type="${type}" data-field="${f}" value="${escapeHtml(value)}" />
+          </div>
+        `;
       }).join('');
       return `
-        <tr data-sec="${sec.key}" data-id="${escapeHtml(item.id || '')}">
-          ${cells}
-        </tr>
+        <div class="detail-item" data-sec="${sec.key}" data-id="${escapeHtml(item.id || '')}">
+          <div class="detail-item-grid">
+            ${fields}
+          </div>
+        </div>
       `;
     }
 
@@ -210,8 +209,9 @@
       try {
         await updatePatient(pid, { first_name: first, second_name: second });
         for (const sec of sections) {
-          const body = document.querySelector(`tbody[data-sec="${sec.key}"]`);
-          const rows = Array.from(body.querySelectorAll('tr'));
+          const body = document.querySelector(`.section-items[data-sec="${sec.key}"]`);
+          if (!body) continue;
+          const rows = Array.from(body.querySelectorAll('.detail-item'));
           const updates = [];
           rows.forEach(row => {
             const item = {};
